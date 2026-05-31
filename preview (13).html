@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Call Analytics Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Inter',sans-serif;
+}
+
+:root{
+    --bg:#050a18;
+    --glass: rgba(255,255,255,.05);
+    --stroke: rgba(255,255,255,.10);
+    --text:#eef4ff;
+}
+
+body{
+    background:
+    radial-gradient(circle at 20% 25%, rgba(99,102,241,.18), transparent 45%),
+    radial-gradient(circle at 80% 70%, rgba(167,243,208,.10), transparent 55%),
+    var(--bg);
+
+    color:var(--text);
+    min-height:100vh;
+    padding:30px;
+}
+
+.container{
+    max-width:1400px;
+    margin:auto;
+}
+
+h1{
+    font-size:2rem;
+    margin-bottom:25px;
+}
+
+/* TOOLBAR */
+.toolbar{
+    display:flex;
+    gap:10px;
+    margin-bottom:25px;
+}
+
+button{
+    border:none;
+    cursor:pointer;
+    border-radius:14px;
+}
+
+.primary-btn{
+    background:linear-gradient(135deg,
+        rgba(99,102,241,.25),
+        rgba(129,140,248,.18)
+    );
+    color:white;
+    padding:12px 16px;
+    font-weight:600;
+}
+
+/* GRID */
+.categories{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:15px;
+}
+
+/* CARD */
+.category-card{
+    padding:20px;
+    border-radius:24px;
+    border:1px solid rgba(255,255,255,.10);
+    transition:.25s ease;
+}
+
+/* 🔥 PULSE ANIMATION */
+.pulse{
+    animation:pulseAnim .4s ease;
+}
+
+@keyframes pulseAnim{
+    0%{ transform:scale(1); }
+    50%{ transform:scale(1.03); }
+    100%{ transform:scale(1); }
+}
+
+/* TEXT */
+.category-name{
+    font-size:1.1rem;
+    font-weight:600;
+}
+
+.category-count{
+    font-size:2rem;
+    font-weight:700;
+    margin:12px 0;
+}
+
+/* BAR */
+.bar{
+    height:6px;
+    width:100%;
+    background:rgba(255,255,255,.06);
+    border-radius:20px;
+    overflow:hidden;
+    margin-bottom:12px;
+}
+
+.bar-fill{
+    height:100%;
+    border-radius:20px;
+}
+
+/* ACTIONS */
+.actions{
+    display:flex;
+    gap:8px;
+}
+
+.icon-btn{
+    flex:1;
+    padding:10px;
+    border-radius:12px;
+    cursor:pointer;
+    color:white;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.10);
+    transition:.2s;
+}
+
+.icon-btn:hover{
+    transform:translateY(-2px);
+    filter:brightness(1.2);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📞 Call Analytics Dashboard</h1>
+
+<div class="toolbar">
+    <button class="primary-btn" onclick="addCategory()">➕ Add Category</button>
+    <button class="primary-btn" onclick="exportCSV()">📊 Export CSV</button>
+</div>
+
+<div class="categories" id="categories"></div>
+
+</div>
+
+<script>
+
+let data = JSON.parse(localStorage.getItem("callDashboard")) || {
+    categories:[
+        {name:"Technical Support",count:0},
+        {name:"Payment Issues",count:0},
+        {name:"Appointments",count:0}
+    ]
+};
+
+function save(){
+    localStorage.setItem("callDashboard",JSON.stringify(data));
+}
+
+/* 🎨 COLOR SYSTEM */
+function getColor(count){
+
+    let r,g,b;
+
+    if(count <= 10){
+        let t = count / 10;
+        r = 90 + (160 - 90) * t;
+        g = 150 + (120 - 150) * t;
+        b = 255;
+    }
+    else if(count <= 15){
+        let t = (count - 11) / 4;
+        r = 160 + (200 - 160) * t;
+        g = 120 + (90 - 120) * t;
+        b = 255;
+    }
+    else{
+        let t = Math.min((count - 15) / 10, 1);
+        r = 200 + (255 - 200) * t;
+        g = 90 + (120 - 90) * t;
+        b = 255 - (255 - 170) * t;
+    }
+
+    return `rgba(${r},${g},${b},.75)`;
+}
+
+/* 🧠 RENDER WITH RANKING + HOT */
+function render(){
+
+    const container = document.getElementById("categories");
+    container.innerHTML = "";
+
+    // 📊 SORT (ranking)
+    let sorted = [...data.categories]
+        .sort((a,b)=>b.count - a.count);
+
+    let max = Math.max(...sorted.map(c=>c.count),1);
+
+    sorted.forEach((cat,i)=>{
+
+        let color = getColor(cat.count);
+        let percent = (cat.count/max)*100;
+
+        let isHot = i === 0; // top category
+
+        container.innerHTML += `
+        <div class="category-card glass ${isHot ? "pulse" : ""}"
+             style="
+                border-color:${color};
+                box-shadow:${isHot ? `0 0 30px ${color}` : `0 0 18px ${color}22`};
+             ">
+
+            <div class="category-name">
+                ${cat.name} ${isHot ? "🔥" : ""}
+            </div>
+
+            <div class="category-count" style="color:${color}">
+                ${cat.count}
+            </div>
+
+            <div class="bar">
+                <div class="bar-fill"
+                     style="width:${percent}%; background:${color}">
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="icon-btn" onclick="registerCall(${data.categories.indexOf(cat)})">+</button>
+                <button class="icon-btn" onclick="editCategory(${data.categories.indexOf(cat)})">✏️</button>
+                <button class="icon-btn" onclick="deleteCategory(${data.categories.indexOf(cat)})">🗑️</button>
+            </div>
+
+        </div>`;
+    });
+}
+
+/* FUNCTIONS */
+function registerCall(i){
+    data.categories[i].count++;
+    save();
+    render();
+}
+
+function addCategory(){
+    const name = prompt("Category name:");
+    if(!name) return;
+    data.categories.push({name,count:0});
+    save();
+    render();
+}
+
+function editCategory(i){
+    const n = prompt("Edit name:",data.categories[i].name);
+    if(!n) return;
+    data.categories[i].name = n;
+    save();
+    render();
+}
+
+function deleteCategory(i){
+    if(!confirm("Delete category?")) return;
+    data.categories.splice(i,1);
+    save();
+    render();
+}
+
+function exportCSV(){
+    let csv = "Category,Calls\n";
+
+    data.categories.forEach(c=>{
+        csv += `"${c.name}",${c.count}\n`;
+    });
+
+    const blob = new Blob([csv],{type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "call-report.csv";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+render();
+
+</script>
+
+</body>
+</html>
